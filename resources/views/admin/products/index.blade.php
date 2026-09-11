@@ -293,7 +293,12 @@
             <div class="relative">
                 <a href="{{ route('admin.products.show', $product) }}">
                     @if($product->image)
-                       <img src="{{ asset('storage/' . $product->image) }}" class="w-full h-60 object-cover transition duration-500 group-hover:scale-110">
+                       <img 
+    src="{{ str_starts_with($product->image, 'http') 
+        ? $product->image 
+        : asset('storage/' . $product->image) }}"
+    class="w-full h-60 object-cover transition duration-500 group-hover:scale-110"
+>
                     @else
                         <div class="w-full h-48 bg-gray-200 flex items-center justify-center text-gray-400">No Image</div>
                     @endif

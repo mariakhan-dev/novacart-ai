@@ -7,6 +7,7 @@ use Illuminate\Routing\Controller;
 use App\Models\Order;
 use App\Models\User;
 use Storage;
+use CloudinaryLabs\CloudinaryLaravel\Facades\Cloudinary;
 class ProductController extends Controller
 {
     public function index(Request $request)
@@ -77,7 +78,14 @@ $recentOrders = Order::latest()->take(5)->get();
     ]);
     $data = $request->all();
     if($request->hasFile('image')){
-        $data['image']= $request->file('image')->store('products', 'public');
+        $uploadedFile = Cloudinary::uploadApi()->upload(
+    $request->file('image')->getRealPath(),
+    [
+        'folder' => 'novacart/products'
+    ]
+);
+
+$data['image'] = $uploadedFile['secure_url'];
     }
     Product::create($data); // data save ho jayega
     return redirect()->route('admin.products.index')->with('success','Product added!');
@@ -131,24 +139,32 @@ public function update(Request $request, Product $product)
         'image' => 'nullable|image|mimes:jpg,png,jpeg|max:2048',
     ]);
     $data = $request->except('image');
-    if($request->hasFile('image')){
-             if($product->image){
-            Storage::disk('public')->delete($product->image);
-        }
-             $data['image'] = $request->file('image')->store('products', 'public');
-    }
+    if ($request->hasFile('image')) {
+
+    $uploadedFile = Cloudinary::uploadApi()->upload(
+        $request->file('image')->getRealPath(),
+        [
+            'folder' => 'novacart/products'
+        ]
+    );
+
+    $data['image'] = $uploadedFile['secure_url'];
+}
     $product->update($data);
     return redirect()->route('admin.products.index')->with('success', 'Product updated successfully!');
 }
 
     public function destroy(Product $product)
-    {
-        if($product->image) {
-            Storage::disk('public')->delete($product->image);
-        }
-        $product->delete();
-        return redirect()->route('admin.products.index')->with('success', 'Product Deleted Successfully!');
+{
+    if ($product->image && !str_starts_with($product->image, 'http')) {
+        Storage::disk('public')->delete($product->image);
     }
+
+    $product->delete();
+
+    return redirect()->route('admin.products.index')
+        ->with('success', 'Product Deleted Successfully!');
+}
 public function category(Category $category)
 {
     $products = Product::where('category_id', $category->id)->latest()->get();
